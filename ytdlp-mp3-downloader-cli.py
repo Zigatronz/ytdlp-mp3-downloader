@@ -1,4 +1,3 @@
-
 import argparse
 from internal.download_mp3 import download_mp3
 from internal.better_filename import better_filename
@@ -15,7 +14,7 @@ def main():
 
     if not url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/"):
         print("Invalid URL. Please provide a valid YouTube video URL.")
-        return
+        exit(1)
 
     output_folder = "Music"
     
@@ -27,7 +26,7 @@ def main():
         print(f"\nDownload completed successfully: {Path(music_path).name}")
     except Exception as e:
         print(f"An error occurred during download: {e}")
-        return
+        exit(2)
     
     # 2. Clean up the filename
     try:
@@ -76,6 +75,10 @@ def main():
             print("Metadata applied.")
     except Exception as e:
         print(f"An error occurred while fetching/applying metadata: {e}")
+    finally:
+        print(f"Task completed:")
+        print(f"    {Path(music_path).name}")
 
 if __name__ == "__main__":
     main()
+    exit(0)
