@@ -4,6 +4,8 @@
 
 A lightweight YouTube audio downloader built for fast, reliable MP3 export. This project focuses on keeping the experience simple and streamlined while preserving high audio quality and basic track metadata for offline listening.
 
+<img src="internal/gui_preview.png" width="500" alt="ytdlp-mp3-downloader gui">
+
 ## Features
 
 - Download audio from YouTube at the best available quality (up to 192 kbps)
