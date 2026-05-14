@@ -33,6 +33,10 @@ python ytdlp-mp3-downloader-gui.py
 python ytdlp-mp3-downloader-cli.py --url "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
+## Flowchart
+
+For a visual overview of the application's workflow, view the [interactive flowchart](https://app.diagrams.net/?src=about#Uhttps%3A%2F%2Fraw.githubusercontent.com%2FZigatronz%2Fytdlp-mp3-downloader%2Frefs%2Fheads%2Fmain%2Fflowchart.drawio).
+
 ## Why this project exists
 
 This tool is created for users who want a lightweight, user-friendly way to save YouTube audio as MP3 without dealing with cookies, complex authentication, or heavy setup.
