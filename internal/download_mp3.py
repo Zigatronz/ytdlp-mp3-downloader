@@ -2,7 +2,7 @@ import yt_dlp
 from typing import Dict, Tuple
 
 def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str]]:
-    ydl_opts = {
+    ydl_params = {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_folder}/%(uploader)s - %(title)s.%(ext)s',
         'postprocessors': [
@@ -23,7 +23,7 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
     }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_params) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             requested_downloads = info_dict.get('requested_downloads', [])
             
