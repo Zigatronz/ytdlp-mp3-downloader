@@ -17,7 +17,6 @@ WIN_TITLE = "YTDLP MP3 Downloader"
 FONT_NORMAL = ("Arial", 11)
 FONT_BOLD = ("Arial", 11, "bold")
 FONT_TITLE = ("Arial", 14, "bold")
-STATUS_CHAR_LIMIT = 40
 
 # CLI Script Filename
 CLI_FILENAME = "ytdlp-mp3-downloader-cli.py"
@@ -39,8 +38,6 @@ def dn_instance(url):
         bufsize=1
     )
     def update_status(text):
-        if len(text) > STATUS_CHAR_LIMIT:
-            text = text[:STATUS_CHAR_LIMIT - 3] + "..."
         for item in table.get_children():
             if table.item(item, "values")[0] == url:
                 table.item(item, values=(url, text))
@@ -57,16 +54,17 @@ def dn_instance(url):
     elif process.returncode == 1:
         update_status("Invalid URL")
     elif process.returncode == 2:
-        update_status("Download Error")
+        update_status(f"Download Error: {latest_line}")
     else:
         update_status("Error")
 
 # Root Window Configuration
 root = tk.Tk()
 root.title(WIN_TITLE)
-root.geometry("400x450")
+root.geometry("400x600")
 root.minsize(375, 350)
 root.configure(bg=BG_COLOR)
+root.columnconfigure(0, weight=1)
 
 # Set Window Icon
 icon_path = os.path.join("internal", "icon.png")
@@ -101,24 +99,58 @@ text_img_label.pack(pady=10)
 
 # Input Fields Frame
 input_frame = tk.Frame(root, bg=BG_COLOR)
-input_frame.pack(pady=10)
+input_frame.pack(fill="x", pady=10, padx=10)
+input_frame.columnconfigure(1, weight=1)
 
 # Label & Entry for URL Input
 tk.Label(input_frame, text="URL:", font=FONT_NORMAL, bg=BG_COLOR, fg=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=5, sticky="e")
-url_entry = tk.Entry(input_frame, font=FONT_NORMAL, bg=FIELD_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR, relief="flat", bd=5, width=32)
-url_entry.grid(row=0, column=1, padx=5, pady=5)
+url_entry = tk.Entry(input_frame, font=FONT_NORMAL, bg=FIELD_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR, relief="flat", bd=5)
+url_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
 # Download Button
 dn_button = tk.Button(root, text="Start Download", font=FONT_NORMAL, bg=ACCENT_COLOR, fg=TEXT_COLOR, activebackground="#357abd", activeforeground=TEXT_COLOR, relief="flat", padx=5, pady=5, command=create_dn_instance)
-dn_button.pack(pady=10)
+dn_button.pack(fill="x", padx=10, pady=(0, 10))
 
 # Table Layout
 columns = ("name", "status")
-table = ttk.Treeview(root, columns=columns, show="headings")
-table.heading("name", text="Name")
+# Allow a single row to be selected so selection events fire
+table = ttk.Treeview(root, columns=columns, show="headings", selectmode='browse')
+table.heading("name", text="URL")
 table.heading("status", text="Status")
-table.column("name", width=150, anchor="w")
-table.column("status", width=100, anchor="w")
+
+table.column("name", width=200, anchor="w", stretch=True)
+table.column("status", width=150, anchor="w", stretch=True)
 table.pack(pady=20, padx=10, fill=tk.BOTH, expand=True)
+
+# Readonly selection widgets for copying partial text from a row
+selection_frame = tk.Frame(root, bg=BG_COLOR)
+selection_frame.pack(fill="x", padx=10, pady=(0,10))
+
+tk.Label(selection_frame, text="URL:", font=FONT_NORMAL, bg=BG_COLOR, fg=TEXT_COLOR).grid(row=0, column=0, sticky="w")
+name_var = tk.StringVar()
+name_entry = ttk.Entry(selection_frame, textvariable=name_var, font=FONT_NORMAL, state='readonly')
+name_entry.grid(row=0, column=1, sticky="ew", padx=6)
+
+tk.Label(selection_frame, text="Status:", font=FONT_NORMAL, bg=BG_COLOR, fg=TEXT_COLOR).grid(row=1, column=0, sticky="w")
+status_var = tk.StringVar()
+status_entry = ttk.Entry(selection_frame, textvariable=status_var, font=FONT_NORMAL, state='readonly')
+status_entry.grid(row=1, column=1, sticky="ew", padx=6, pady=(4,0))
+
+selection_frame.columnconfigure(1, weight=1)
+
+def on_row_select(event):
+    sel = table.selection()
+    if not sel:
+        name_var.set("")
+        status_var.set("")
+        return
+    item_id = sel[0]
+    vals = table.item(item_id, "values")
+    # Defensive: ensure two columns
+    if vals:
+        name_var.set(vals[0] if len(vals) > 0 else "")
+        status_var.set(vals[1] if len(vals) > 1 else "")
+
+table.bind("<<TreeviewSelect>>", on_row_select)
 
 root.mainloop()
