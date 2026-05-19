@@ -35,6 +35,8 @@ def dn_instance(url):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1
     )
     def update_status(text):

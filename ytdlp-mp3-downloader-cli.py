@@ -1,11 +1,20 @@
 import argparse
+import sys
 from internal.download_mp3 import download_mp3
 from internal.better_filename import better_filename
 from internal.metadata_fetcher import metadata_fetcher
 from pathlib import Path
 import os
 
+def _configure_io_encoding():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 def main():
+    _configure_io_encoding()
     parser = argparse.ArgumentParser(description="Download mp3 with metadata from YouTube.")
     parser.add_argument("--url", required=True, help="URL of YouTube video/music.")
     args = parser.parse_args()
