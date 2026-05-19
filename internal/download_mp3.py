@@ -1,7 +1,10 @@
 import yt_dlp
 from typing import Dict, Tuple
+import browser_cookie3
 
 def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str]]:
+    cj = browser_cookie3.load(domain_name='.youtube.com')
+
     ydl_params = {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_folder}/%(uploader)s - %(title)s.%(ext)s',
@@ -20,6 +23,8 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
                 'already_have_thumbnail': False,
             }
         ],
+        'cookiejar': cj,
+        'quiet': False,
     }
 
     try:
