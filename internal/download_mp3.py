@@ -3,7 +3,33 @@ from typing import Dict, Tuple
 import browser_cookie3
 
 def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str]]:
-    cj = browser_cookie3.load(domain_name='.youtube.com')
+    browser_functions = [
+        ('Firefox', browser_cookie3.firefox),
+        ('Edge', browser_cookie3.edge),
+        ('Brave', browser_cookie3.brave),
+        ('Opera', browser_cookie3.opera),
+        ('Chrome', browser_cookie3.chrome),  # Kept last due to App-Bound Encryption locks
+    ]
+
+    combined_jar = None
+    for name, fetch_function in browser_functions:
+        try:
+            cookies = fetch_function(domain_name='.youtube.com')
+
+            if cookies is None:
+                continue
+
+            if combined_jar is None:
+                combined_jar = cookies
+            else:
+                for cookie in cookies:
+                    combined_jar.set_cookie(cookie)
+
+        except Exception:
+            # Skip any browser that fails to provide cookies, as some may have App-Bound Encryption or other issues
+            continue
+
+    cj = combined_jar
 
     ydl_params = {
         'format': 'bestaudio/best',

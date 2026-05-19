@@ -11,7 +11,7 @@ A lightweight YouTube audio downloader built for fast, reliable MP3 export. This
 - Download audio from YouTube at the best available quality (up to 192 kbps)
 - Save files as MP3 with metadata sourced from YouTube and iTunes when available
 - Simple command-line interface plus a graphical UI entry point
-- No cookie management or complex configuration required
+- Uses `browser-cookie3` to fetch cookies automatically in order: Firefox, Edge, Brave, Opera, Chrome
 
 ## Install
 
