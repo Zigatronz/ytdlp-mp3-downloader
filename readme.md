@@ -15,11 +15,15 @@ A lightweight YouTube audio downloader built for fast, reliable MP3 export. This
 
 ## Install
 
+The Python requirements should be installed and `ffmpeg` should be available on the system `PATH`.
+
 ```bash
 git clone https://github.com/Zigatronz/ytdlp-mp3-downloader
 cd ytdlp-mp3-downloader
 python -m pip install -r requirements.txt
 ```
+
+Installation can be verified by running `ffmpeg` in a terminal. If `ffmpeg` is not present, download a build from https://ffmpeg.org/download.html and add it to the system `PATH`.
 
 ## Usage
 

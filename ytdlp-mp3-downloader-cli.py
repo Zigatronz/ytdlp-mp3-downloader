@@ -12,7 +12,7 @@ def main():
     url = args.url
     metadata = None
 
-    if not url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/"):
+    if not ( url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/") or url.startswith("https://music.youtube.com/") ):
         print("Invalid URL. Please provide a valid YouTube video URL.")
         exit(1)
 
@@ -55,18 +55,18 @@ def main():
             print(f"Fetching metadata from iTunes API for: {Path(music_path).stem}")
             meta_fetcher.fetch()
             print("Metadata fetched successfully.")
-        except ValueError as e:
-            print(f"Metadata fetch failed: {e}")
-            print("Retrying with cleaned title...")
-            meta_fetcher.song_title = song_title.replace(metadata["uploader"], "").strip()
-            meta_fetcher.fetch()
-            print("Metadata fetched successfully.")
-            print("Renaming file based on fetched metadata...")
-            new_music_name = f"{meta_fetcher.metadata['artist']} - {meta_fetcher.metadata['title']}{Path(music_path).suffix}"
-            new_music_path = os.path.join(Path(music_path).parent, new_music_name)
-            os.rename(music_path, new_music_path)
-            music_path = new_music_path
-            print(f"File renamed to: {Path(music_path).name}")
+        # except ValueError as e:
+        #     print(f"Metadata fetch failed: {e}")
+        #     print("Retrying with cleaned title...")
+        #     meta_fetcher.song_title = song_title.replace(metadata["uploader"], "").strip()
+        #     meta_fetcher.fetch()
+        #     print("Metadata fetched successfully.")
+        #     print("Renaming file based on fetched metadata...")
+        #     new_music_name = f"{meta_fetcher.metadata['artist']} - {meta_fetcher.metadata['title']}{Path(music_path).suffix}"
+        #     new_music_path = os.path.join(Path(music_path).parent, new_music_name)
+        #     os.rename(music_path, new_music_path)
+        #     music_path = new_music_path
+        #     print(f"File renamed to: {Path(music_path).name}")
         except Exception as e:
             print(f"Metadata fetch failed: {e}")
         finally:
