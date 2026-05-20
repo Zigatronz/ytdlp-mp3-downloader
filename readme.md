@@ -11,7 +11,12 @@ A lightweight YouTube audio downloader built for fast, reliable MP3 export. This
 - Download audio from YouTube at the best available quality (up to 192 kbps)
 - Save files as MP3 with metadata sourced from YouTube and iTunes when available
 - Simple command-line interface plus a graphical UI entry point
-- Uses `browser-cookie3` to fetch cookies automatically in order: Firefox, Edge, Brave, Opera, Chrome
+- Session cookies are automatically fetched using `browser-cookie3`. The following browsers are scanned in order, and a `youtube_cookies.txt` file is generated during the session:
+  1. Firefox (Tested ✅)
+  2. Edge
+  3. Brave
+  4. Opera
+  5. Chrome
 
 ## Install
 
@@ -47,6 +52,16 @@ For a visual overview of the application's workflow, view the [interactive flowc
 
 This tool is created for users who want a lightweight, user-friendly way to save YouTube audio as MP3 without dealing with cookies, complex authentication, or heavy setup.
 
-## License
+## Dependencies and Licensing
 
-This project is distributed under the MIT License. You are free to use, modify, and distribute the code with attribution, subject to the terms of the MIT License.
+This project is licensed under the **MIT License**.
+
+This project relies on the following third-party libraries, which are installed automatically via your [`requirements.txt`](requirements.txt):
+
+*   [requests](https://github.com/psf/requests) (v2.28.2) – Licensed under the Apache License 2.0
+*   [argparse](https://github.com/ThomasWaldmann/argparse/) (v1.4.0) – Licensed under the Python Software Foundation License
+*   [music_tag](https://github.com/KristoforMaynard/music-tag) (v0.4.3) – Licensed under the MIT License
+*   [yt-dlp](https://github.com/yt-dlp/yt-dlp) (v2026.3.17) – Dedicated to the Public Domain (The Unlicense)
+*   [browser-cookie3](https://github.com/borisbabic/browser_cookie3) (v0.19.1) – Licensed under the GNU LGPLv3
+
+All third-party libraries remain the property of their respective authors and are used here under dynamic runtime linking via `pip`.

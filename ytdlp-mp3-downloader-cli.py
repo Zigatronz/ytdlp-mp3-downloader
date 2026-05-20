@@ -3,6 +3,7 @@ import sys
 from internal.download_mp3 import download_mp3
 from internal.better_filename import better_filename
 from internal.metadata_fetcher import metadata_fetcher
+from internal.log_time import logTime
 from pathlib import Path
 import os
 
@@ -22,7 +23,7 @@ def main():
     metadata = None
 
     if not ( url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/") or url.startswith("https://music.youtube.com/") ):
-        print("Invalid URL. Please provide a valid YouTube video URL.")
+        logTime("Invalid URL. Please provide a valid YouTube video URL.", level="ERR")
         exit(1)
 
     output_folder = "Music"
@@ -30,22 +31,22 @@ def main():
     # 1. Download the mp3 file
     try:
         os.makedirs(output_folder, exist_ok=True)
-        print(f"Downloading from URL: {url}")
+        logTime(f"Downloading from URL: {url}", level="INF")
         music_path, metadata = download_mp3(url, output_folder=output_folder)
-        print(f"\nDownload completed successfully: {Path(music_path).name}")
+        logTime(f"Download completed successfully: {Path(music_path).name}", level="INF")
     except Exception as e:
-        print(f"An error occurred during download: {e}")
+        logTime(f"An error occurred during download: {e}", level="ERR")
         exit(2)
     
     # 2. Clean up the filename
     try:
-        print(f"Cleaning filename: {Path(music_path).name}")
+        logTime(f"Cleaning filename: {Path(music_path).name}", level="INF")
         new_music_path = better_filename(music_path)
         os.rename(music_path, new_music_path)
         music_path = new_music_path
-        print(f"Filename cleaned: {Path(music_path).name}")
+        logTime(f"Filename cleaned: {Path(music_path).name}", level="INF")
     except Exception as e:
-        print(f"An error occurred while renaming the file: {e}")
+        logTime(f"An error occurred while renaming the file: {e}", level="ERR")
 
     # 3. Fetch and apply metadata
     try:
@@ -53,7 +54,7 @@ def main():
         meta_fetcher = metadata_fetcher(song_title)
 
         # fill existing metadata with title from download if available
-        print(f"Using metadata from download as base.")
+        logTime(f"Using metadata from download as base.", level="INF")
         meta_fetcher.metadata["title"] = song_title
         meta_fetcher.metadata["artist"] = metadata["uploader"]
         meta_fetcher.metadata["year"] = metadata["upload_date_year"]
@@ -61,32 +62,20 @@ def main():
         meta_fetcher.metadata["artwork_url"] = metadata["thumbnail_url"]
 
         try:
-            print(f"Fetching metadata from iTunes API for: {Path(music_path).stem}")
+            logTime(f"Fetching metadata from iTunes API for: {Path(music_path).stem}", level="INF")
             meta_fetcher.fetch()
-            print("Metadata fetched successfully.")
-        # except ValueError as e:
-        #     print(f"Metadata fetch failed: {e}")
-        #     print("Retrying with cleaned title...")
-        #     meta_fetcher.song_title = song_title.replace(metadata["uploader"], "").strip()
-        #     meta_fetcher.fetch()
-        #     print("Metadata fetched successfully.")
-        #     print("Renaming file based on fetched metadata...")
-        #     new_music_name = f"{meta_fetcher.metadata['artist']} - {meta_fetcher.metadata['title']}{Path(music_path).suffix}"
-        #     new_music_path = os.path.join(Path(music_path).parent, new_music_name)
-        #     os.rename(music_path, new_music_path)
-        #     music_path = new_music_path
-        #     print(f"File renamed to: {Path(music_path).name}")
+            logTime("Metadata fetched successfully.", level="INF")
         except Exception as e:
-            print(f"Metadata fetch failed: {e}")
+            logTime(f"Metadata fetch failed: {e}", level="ERR")
         finally:
-            print(f"Applying metadata to: {Path(music_path).name}")
+            logTime(f"Applying metadata to: {Path(music_path).name}", level="INF")
             meta_fetcher.apply_metadata(music_path)
-            print("Metadata applied.")
+            logTime("Metadata applied.", level="INF")
     except Exception as e:
-        print(f"An error occurred while fetching/applying metadata: {e}")
+        logTime(f"An error occurred while fetching/applying metadata: {e}", level="ERR")
     finally:
-        print(f"Task completed:")
-        print(f"    {Path(music_path).name}")
+        logTime("Task completed:", level="INF")
+        logTime(f"{Path(music_path).name}", level="INF")
 
 if __name__ == "__main__":
     main()

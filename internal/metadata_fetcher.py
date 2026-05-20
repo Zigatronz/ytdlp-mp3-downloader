@@ -1,5 +1,6 @@
 import requests
 import music_tag
+from internal.log_time import logTime
 
 class metadata_fetcher:
     def __init__(self, song_title):
@@ -48,7 +49,7 @@ class metadata_fetcher:
                 raise ValueError("No matching track found.")
 
         except Exception as e:
-            print(f"An error occurred while fetching metadata: {e}")
+            logTime(f"An error occurred while fetching metadata: {e}", level="ERR")
             raise
 
     def apply_metadata(self, mp3_path):
@@ -60,7 +61,7 @@ class metadata_fetcher:
                 response.raise_for_status()
                 return response.content
             except Exception as e:
-                print(f"An error occurred while downloading cover art: {e}")
+                logTime(f"An error occurred while downloading cover art: {e}", level="WRN")
                 return None
 
         try:
@@ -87,10 +88,10 @@ class metadata_fetcher:
                 if cover_art_data:
                     audio_file["artwork"] = cover_art_data
                 else:
-                    print("Cover art could not be downloaded, skipping embedding.")
+                    logTime("Cover art could not be downloaded, skipping embedding.", level="WRN")
             else:
-                print("No cover art URL found, skipping embedding.")
+                logTime("No cover art URL found, skipping embedding.", level="INF")
             audio_file.save()
         except Exception as e:
-            print(f"An error occurred while applying metadata: {e}")
+            logTime(f"An error occurred while applying metadata: {e}", level="ERR")
             raise

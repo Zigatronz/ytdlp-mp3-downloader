@@ -1,21 +1,25 @@
 import yt_dlp
 from typing import Dict, Tuple
-import browser_cookie3
+import time, browser_cookie3, os
+from internal.log_time import logTime
 
-def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str]]:
+def scrape_youtube_cookies(output_txt_path: str = "youtube_cookies.txt") -> bool:
+    """
+    Extracts browser session cookies natively and writes them to a 
+    standardized Netscape text format that yt-dlp strictly expects.
+    """
     browser_functions = [
         ('Firefox', browser_cookie3.firefox),
         ('Edge', browser_cookie3.edge),
         ('Brave', browser_cookie3.brave),
         ('Opera', browser_cookie3.opera),
-        ('Chrome', browser_cookie3.chrome),  # Kept last due to App-Bound Encryption locks
+        ('Chrome', browser_cookie3.chrome),
     ]
 
     combined_jar = None
     for name, fetch_function in browser_functions:
         try:
             cookies = fetch_function(domain_name='.youtube.com')
-
             if cookies is None:
                 continue
 
@@ -24,12 +28,45 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
             else:
                 for cookie in cookies:
                     combined_jar.set_cookie(cookie)
-
+            logTime(f"Scraped active session tokens from: {name}", level="INF", print_this=True)
         except Exception:
-            # Skip any browser that fails to provide cookies, as some may have App-Bound Encryption or other issues
             continue
 
-    cj = combined_jar
+    if combined_jar is None:
+        return False
+
+    # Compile memory blocks into Netscape text file layout
+    cookie_file_content = (
+        "# Netscape HTTP Cookie File\n"
+        "# http://curl.haxx.se/rfc/cookie_spec.html\n"
+        "# This is a generated file! Do not edit.\n\n"
+    )
+    
+    for cookie in combined_jar:
+        domain = str(cookie.domain)
+        include_subdomains = "TRUE" if domain.startswith(".") else "FALSE"
+        path = str(cookie.path)
+        secure = "TRUE" if cookie.secure else "FALSE"
+        expires = str(cookie.expires) if cookie.expires is not None else str(int(time.time()) + 31536000)
+        name = str(cookie.name)
+        value = str(cookie.value)
+        
+        cookie_file_content += f"{domain}\t{include_subdomains}\t{path}\t{secure}\t{expires}\t{name}\t{value}\n"
+
+    with open(output_txt_path, "w", encoding="utf-8") as f:
+        f.write(cookie_file_content)
+
+    return True
+
+
+def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str]]:
+    cookie_file = "youtube_cookies.txt"
+
+    if os.path.exists(cookie_file):
+        logTime("Existing cookie file found. Using it for authentication.", level="INF")
+        has_cookies = True
+    else:
+        has_cookies = scrape_youtube_cookies(cookie_file)
 
     ydl_params = {
         'format': 'bestaudio/best',
@@ -49,12 +86,33 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
                 'already_have_thumbnail': False,
             }
         ],
-        'cookiejar': cj,
         'quiet': False,
     }
+    
+    if has_cookies and os.path.exists(cookie_file):
+        ydl_params['cookiejar'] = cookie_file
+        
+        # FIX: Force yt-dlp to use the standard desktop web player clients 
+        # This prevents YouTube from serving DRM-protected TV/Mobile streams to your account.
+        ydl_params['extractor_args'] = {
+            'youtube': {
+                'player_client': ['web', 'android'],
+                'player_js_variant': ['web']
+            }
+        }
+        
+        # Mimic a standard Windows Firefox browser to align perfectly with your cookies
+        ydl_params['http_headers'] = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        }
+    else:
+        logTime("No browser tokens generated. Defaulting to standard stream request.", level="WRN")
 
     try:
         with yt_dlp.YoutubeDL(ydl_params) as ydl:
+            logTime(f"Starting download for URL: {url}", level="INF")
             info_dict = ydl.extract_info(url, download=True)
             requested_downloads = info_dict.get('requested_downloads', [])
             

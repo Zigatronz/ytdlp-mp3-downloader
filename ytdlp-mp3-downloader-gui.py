@@ -5,6 +5,15 @@ import threading
 import sys
 import subprocess
 import pathlib
+from internal.log_time import logTime
+
+# Delete previous session cookie file if it exists to ensure fresh authentication
+cookie_file = "youtube_cookies.txt"
+if os.path.exists(cookie_file):
+    try:
+        os.remove(cookie_file)
+    except Exception:
+        logTime("Failed to remove existing cookie file. Continuing with potential stale session.", level="WRN")
 
 # Hex Colors for Dark Mode
 BG_COLOR = "#2e2e2e"       # Window & Frame Background
@@ -24,11 +33,12 @@ CLI_FILENAME = "ytdlp-mp3-downloader-cli.py"
 def create_dn_instance():
     url = url_entry.get()
     if url:
-        table.insert("", tk.END, values=(url, "Downloading..."))
+        row_num = len(table.get_children()) + 1
+        item = table.insert("", tk.END, values=(row_num, url, "Downloading..."))
         url_entry.delete(0, tk.END)
-        threading.Thread(target=dn_instance, args=(url,), daemon=True).start()
+        threading.Thread(target=dn_instance, args=(url, item), daemon=True).start()
 
-def dn_instance(url):
+def dn_instance(url, item):
     command = [sys.executable, CLI_FILENAME, "--url", url]
     process = subprocess.Popen(
         command,
@@ -40,10 +50,9 @@ def dn_instance(url):
         bufsize=1
     )
     def update_status(text):
-        for item in table.get_children():
-            if table.item(item, "values")[0] == url:
-                table.item(item, values=(url, text))
-                break
+        current_vals = table.item(item, "values")
+        if current_vals and len(current_vals) >= 3:
+            table.item(item, values=(current_vals[0], current_vals[1], text))
 
     latest_line = ""
     for line in process.stdout:
@@ -52,7 +61,9 @@ def dn_instance(url):
 
     process.wait()
     if process.returncode == 0:
-        update_status(f"Completed: {pathlib.Path(latest_line).name}")
+        completed_name = latest_line.rsplit(": ", 1)[-1].strip()
+        completed_name = pathlib.Path(completed_name).name
+        update_status(f"Completed: {completed_name}")
     elif process.returncode == 1:
         update_status("Invalid URL")
     elif process.returncode == 2:
@@ -63,7 +74,7 @@ def dn_instance(url):
 # Root Window Configuration
 root = tk.Tk()
 root.title(WIN_TITLE)
-root.geometry("400x600")
+root.geometry("400x650")
 root.minsize(375, 350)
 root.configure(bg=BG_COLOR)
 root.columnconfigure(0, weight=1)
@@ -114,15 +125,33 @@ dn_button = tk.Button(root, text="Start Download", font=FONT_NORMAL, bg=ACCENT_C
 dn_button.pack(fill="x", padx=10, pady=(0, 10))
 
 # Table Layout
-columns = ("name", "status")
+columns = ("no", "name", "status")
 # Allow a single row to be selected so selection events fire
 table = ttk.Treeview(root, columns=columns, show="headings", selectmode='browse')
+table.heading("no", text="No.")
 table.heading("name", text="URL")
 table.heading("status", text="Status")
 
+table.column("no", width=40, anchor="center", stretch=False)
 table.column("name", width=200, anchor="w", stretch=True)
 table.column("status", width=150, anchor="w", stretch=True)
 table.pack(pady=20, padx=10, fill=tk.BOTH, expand=True)
+
+def clear_completed():
+    # Remove rows whose status (column 2) begins with 'Completed'
+    for item in table.get_children():
+        vals = table.item(item, "values")
+        if not vals or len(vals) < 3:
+            continue
+        status = vals[2]
+        try:
+            if isinstance(status, str) and status.strip().startswith("Completed"):
+                table.delete(item)
+        except Exception:
+            continue
+
+clear_button = tk.Button(root, text="Clear Completed", font=FONT_NORMAL, bg=ACCENT_COLOR, fg=TEXT_COLOR, activebackground="#357abd", activeforeground=TEXT_COLOR, relief="flat", padx=5, pady=0, command=clear_completed)
+clear_button.pack(fill="x", padx=10, pady=(0, 10))
 
 # Readonly selection widgets for copying partial text from a row
 selection_frame = tk.Frame(root, bg=BG_COLOR)
@@ -148,11 +177,23 @@ def on_row_select(event):
         return
     item_id = sel[0]
     vals = table.item(item_id, "values")
-    # Defensive: ensure two columns
+    # Defensive: ensure three columns (no, name, status)
     if vals:
-        name_var.set(vals[0] if len(vals) > 0 else "")
-        status_var.set(vals[1] if len(vals) > 1 else "")
+        name_var.set(vals[1] if len(vals) > 1 else "")  # URL column
+        status_var.set(vals[2] if len(vals) > 2 else "")  # Status column
 
 table.bind("<<TreeviewSelect>>", on_row_select)
+
+def on_window_close():
+    # Delete cookie file on exit
+    if os.path.exists(cookie_file):
+        try:
+            os.remove(cookie_file)
+            logTime("Cookie file cleaned up on exit.", level="INF", print_this=False)
+        except Exception:
+            logTime("Failed to remove cookie file on exit.", level="WRN", print_this=False)
+    root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", on_window_close)
 
 root.mainloop()
