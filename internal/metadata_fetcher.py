@@ -57,9 +57,25 @@ class metadata_fetcher:
 
         def download_cover_art(url):
             try:
-                response = requests.get(url)
+                # Set a strict timeout to prevent hanging
+                response = requests.get(url, timeout=10)
                 response.raise_for_status()
-                return response.content
+                
+                # Validate Content-Type header before reading body
+                content_type = response.headers.get('Content-Type', '')
+                if not content_type.startswith('image/'):
+                    logTime(f"URL did not return an image. Content-Type: {content_type}", level="WRN")
+                    return None
+                    
+                data = response.content
+                
+                # Validate file signature (Magic Bytes)
+                # JPEG starts with ffd8ffe0, ffd8ffe1, or ffd8ffe2. PNG starts with 89504e47
+                if data.startswith(b'\xff\xd8') or data.startswith(b'\x89\x50\x4e\x47'):
+                    return data
+                    
+                logTime("Downloaded data failed image header validation.", level="WRN")
+                return None
             except Exception as e:
                 logTime(f"An error occurred while downloading cover art: {e}", level="WRN")
                 return None

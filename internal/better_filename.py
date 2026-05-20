@@ -14,32 +14,41 @@ EMOJI_PATTERN = re.compile("["
     "]+", flags=re.UNICODE)
 
 def clean_title(text: str) -> str:
-    # 1. Remove anything inside round, square, or curly brackets
+    # Remove anything inside round, square, or curly brackets
     text = re.sub(r'[\(\[\{].*?[\)\]\}]', '', text)
+
+    # Remove the word "topic" if it appears as a standalone token
+    text = re.sub(r'(?i)\btopic\b', '', text)
     
-    # 2. Remove hashtags and all connected characters up to a space
+    # Remove hashtags and all connected characters up to a space
     text = re.sub(r'#\S+', '', text)
     
-    # 2.1 Normalize some common bullet/special symbols to a single dash
+    # Normalize some common bullet/special symbols to a single dash
     text = re.sub(REPLACE_WITH_DASH, '-', text)
 
-    # 2.2 Remove emoji characters to keep filenames clean
+    # Remove emoji characters to keep filenames clean
     text = re.sub(EMOJI_PATTERN, '', text)
     
-    # 3. Collapse multiple spaces into a single space
+    # Collapse multiple spaces into a single space
     text = re.sub(r'\s+', ' ', text)
     
-    # 4. Remove characters that are not allowed in filenames (Windows-safe)
+    # Remove characters that are not allowed in filenames (Windows-safe)
     # Replace path-unfriendly characters with a dash so the title remains readable
     text = re.sub(r'[<>:\\"/\\|\?\*\x00-\x1f]', '-', text)
 
-    # 5. Collapse multiple spaces and dashes into a single space/dash
+    # Collapse multiple spaces and dashes into a single space/dash
     text = re.sub(r'[ \t\r\n]+', ' ', text)
     text = re.sub(r'-{2,}', '-', text)
+    text = re.sub(r'(?:\s*-\s*){2,}', ' - ', text)
     text = re.sub(r'\s*-\s*', ' - ', text)  # normalize dash spacing
+    text = re.sub(r'\s{2,}', ' ', text)
 
-    # 6. Strip extra spaces, dots, and leading/trailing dashes
-    return text.strip().strip('-').strip().strip('.')
+    # If the title is only dashes/spaces after cleanup, collapse to a single dash
+    if re.fullmatch(r'[-\s]+', text):
+        return '-'
+
+    # Strip extra spaces, dots, and leading/trailing dashes
+    return text.strip(' .-')
 
 def better_filename(original_path: str) -> str:
     base_name = pathlib.Path(original_path).stem

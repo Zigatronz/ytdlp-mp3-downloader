@@ -71,6 +71,8 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
     ydl_params = {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_folder}/%(uploader)s - %(title)s.%(ext)s',
+        'writethumbnail': True,
+        'allowed_extractors': ['default'],
         'postprocessors': [
             {
                 'key': 'FFmpegExtractAudio',
@@ -83,9 +85,10 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
             },
             {
                 'key': 'EmbedThumbnail',
-                'already_have_thumbnail': False,
+                'already_have_thumbnail': True,
             }
         ],
+        'extract_flat': False,
         'quiet': False,
     }
     
@@ -135,7 +138,20 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
                 "thumbnail_url": info_dict.get('thumbnail')
             }
 
+            # clean up .webp/.png/.jpg thumbnail if it exists
+            webp_path = os.path.splitext(final_path)[0] + ".webp"
+            png_path = os.path.splitext(final_path)[0] + ".png"
+            jpg_path = os.path.splitext(final_path)[0] + ".jpg"
+
+            for thumbnail_path in [webp_path, png_path, jpg_path]:
+                if os.path.exists(thumbnail_path):
+                    try:
+                        os.remove(thumbnail_path)
+                        logTime("Cleaned up temporary thumbnail file.", level="INF")
+                    except Exception:
+                        logTime("Failed to remove temporary thumbnail file.", level="WRN")
+
             return final_path, metadata
     except Exception as e:
-        print(f"An error occurred while downloading: {e}")
+        logTime(f"An error occurred while downloading: {e}", level="ERR")
         raise
