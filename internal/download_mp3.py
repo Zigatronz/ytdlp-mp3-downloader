@@ -2,6 +2,7 @@ import yt_dlp
 from typing import Dict, Tuple
 import time, browser_cookie3, os
 from internal.log_time import logTime
+from internal.mp3_metadata import Mp3Metadata
 
 def scrape_youtube_cookies(output_txt_path: str = "youtube_cookies.txt") -> bool:
     """
@@ -59,8 +60,9 @@ def scrape_youtube_cookies(output_txt_path: str = "youtube_cookies.txt") -> bool
     return True
 
 
-def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str]]:
+def download_mp3(url: str, output_folder: str = ".") -> Mp3Metadata:
     cookie_file = "youtube_cookies.txt"
+    metadata = Mp3Metadata()
 
     if os.path.exists(cookie_file):
         logTime("Existing cookie file found. Using it for authentication.", level="INF")
@@ -124,34 +126,18 @@ def download_mp3(url: str, output_folder: str = ".") -> Tuple[str, Dict[str, str
             else:
                 final_path = info_dict.get('_filename')
 
-            upload_date = info_dict.get('upload_date')
-            metadata = {
-                "title": info_dict.get('title'),
-                "uploader": info_dict.get('uploader'),
-                "duration_seconds": info_dict.get('duration'),
-                "view_count": info_dict.get('view_count'),
-                "upload_date_day": upload_date[6:8],
-                "upload_date_month": upload_date[4:6],
-                "upload_date_year": upload_date[0:4],
-                "description": info_dict.get('description'),
-                "webpage_url": info_dict.get('webpage_url'),
-                "thumbnail_url": info_dict.get('thumbnail')
-            }
+            metadata.file_path = final_path
+            metadata.yt_v_id = info_dict.get('id')
+            metadata.song_title = info_dict.get('title')
+            metadata.yt_uploader = info_dict.get('uploader')
+            metadata.duration = info_dict.get('duration')
+            metadata.view_count = info_dict.get('view_count')
+            metadata.comment = info_dict.get('description')
+            metadata.yt_upload_date = info_dict.get('upload_date')
+            metadata.yt_webpage_url = info_dict.get('webpage_url')
+            metadata.artwork_url = info_dict.get('thumbnail')
 
-            # clean up .webp/.png/.jpg thumbnail if it exists
-            webp_path = os.path.splitext(final_path)[0] + ".webp"
-            png_path = os.path.splitext(final_path)[0] + ".png"
-            jpg_path = os.path.splitext(final_path)[0] + ".jpg"
-
-            for thumbnail_path in [webp_path, png_path, jpg_path]:
-                if os.path.exists(thumbnail_path):
-                    try:
-                        os.remove(thumbnail_path)
-                        logTime("Cleaned up temporary thumbnail file.", level="INF")
-                    except Exception:
-                        logTime("Failed to remove temporary thumbnail file.", level="WRN")
-
-            return final_path, metadata
+            return metadata
     except Exception as e:
         logTime(f"An error occurred while downloading: {e}", level="ERR")
         raise

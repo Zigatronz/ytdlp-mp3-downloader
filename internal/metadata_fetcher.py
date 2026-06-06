@@ -1,113 +1,42 @@
 import requests
-import music_tag
+from internal.mp3_metadata import Mp3Metadata
 from internal.log_time import logTime
 
-class metadata_fetcher:
-    def __init__(self, song_title):
-        self.song_title = song_title
+def itunes_metadata_fetcher(song_title):
+    """
+    Fetches metadata for a given song title from the iTunes
+    Search API and returns it as an Mp3Metadata object.
+    """
+    url = "https://itunes.apple.com/search"
+    parameters = {
+        "term": song_title,
+        "media": "music",
+        "limit": 1
+    }
 
-        self.mp3_path = None
-        self.url = None
+    try:
+        response = requests.get(url, params=parameters)
+        data = response.json()
 
-        self.metadata = {
-            "title": None,
-            "artist": None,
-            "album": None,
-            "album_artist": None,
-            "year": None,
-            "genre": None,
-            "comment": None,
-            "artwork_url": None
-        }
+        if not isinstance(data, dict):
+            raise ValueError("Unexpected response format: expected a dictionary.")
 
-    def fetch(self):
-        url = "https://itunes.apple.com/search"
-        parameters = {
-            "term": self.song_title,
-            "media": "music",
-            "limit": 1
-        }
+        if data["resultCount"] > 0:
+            track : dict = data["results"][0]
+            metadata = Mp3Metadata()
+            metadata.song_title = track.get("trackName")
+            metadata.artist = track.get("artistName")
+            metadata.album = track.get("collectionName")
+            metadata.album_artist = track.get("artistName")
+            metadata.year = track.get("releaseDate", "")[:4]  # Extract year from release date
+            metadata.genre = track.get("primaryGenreName")
+            metadata.artwork_url = track.get("artworkUrl100")
+            return metadata
+        else:
+            raise ValueError("No matching track found.")
 
-        try:
-            response = requests.get(url, params=parameters)
-            data = response.json()
+    except Exception as e:
+        logTime(f"An error occurred while fetching metadata: {e}", level="ERR")
+        raise
 
-            if not isinstance(data, dict):
-                raise ValueError("Unexpected response format: expected a dictionary.")
 
-            if data["resultCount"] > 0:
-                track : dict = data["results"][0]
-                self.metadata["title"] = track.get("trackName")
-                self.metadata["artist"] = track.get("artistName")
-                self.metadata["album"] = track.get("collectionName")
-                self.metadata["album_artist"] = track.get("artistName")
-                self.metadata["year"] = track.get("releaseDate", "")[:4]  # Extract year from release date
-                self.metadata["genre"] = track.get("primaryGenreName")
-                self.metadata["artwork_url"] = track.get("artworkUrl100")
-                return self.metadata
-            else:
-                raise ValueError("No matching track found.")
-
-        except Exception as e:
-            logTime(f"An error occurred while fetching metadata: {e}", level="ERR")
-            raise
-
-    def apply_metadata(self, mp3_path):
-        self.mp3_path = mp3_path
-
-        def download_cover_art(url):
-            try:
-                # Set a strict timeout to prevent hanging
-                response = requests.get(url, timeout=10)
-                response.raise_for_status()
-                
-                # Validate Content-Type header before reading body
-                content_type = response.headers.get('Content-Type', '')
-                if not content_type.startswith('image/'):
-                    logTime(f"URL did not return an image. Content-Type: {content_type}", level="WRN")
-                    return None
-                    
-                data = response.content
-                
-                # Validate file signature (Magic Bytes)
-                # JPEG starts with ffd8ffe0, ffd8ffe1, or ffd8ffe2. PNG starts with 89504e47
-                if data.startswith(b'\xff\xd8') or data.startswith(b'\x89\x50\x4e\x47'):
-                    return data
-                    
-                logTime("Downloaded data failed image header validation.", level="WRN")
-                return None
-            except Exception as e:
-                logTime(f"An error occurred while downloading cover art: {e}", level="WRN")
-                return None
-
-        try:
-            audio_file : music_tag.AudioFile = music_tag.load_file(mp3_path)
-            if self.metadata.get("title"):
-                audio_file["title"] = self.metadata.get("title")
-            else:
-                audio_file["title"] = self.song_title
-            if self.metadata.get("artist"):
-                audio_file["artist"] = self.metadata.get("artist")
-            if self.metadata.get("album"):
-                audio_file["album"] = self.metadata.get("album")
-            if self.metadata.get("album_artist"):
-                audio_file["albumartist"] = self.metadata.get("album_artist")
-            if self.metadata.get("year"):
-                audio_file["year"] = self.metadata.get("year")
-            if self.metadata.get("genre"):
-                audio_file["genre"] = self.metadata.get("genre")
-            if self.metadata.get("comment"):
-                audio_file["comment"] = self.metadata.get("comment")
-            cover_art_url = self.metadata.get("artwork_url")
-            if cover_art_url:
-                cover_art_data = download_cover_art(cover_art_url)
-                if cover_art_data:
-                    audio_file["artwork"] = cover_art_data
-                else:
-                    logTime("Cover art could not be downloaded, skipping embedding.", level="WRN")
-            else:
-                logTime("No cover art URL found, skipping embedding.", level="INF")
-            audio_file.save()
-        except Exception as e:
-            logTime(f"An error occurred while applying metadata: {e}", level="ERR")
-            raise
