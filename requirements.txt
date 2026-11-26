@@ -4,3 +4,4 @@ music_tag==0.4.3
 yt-dlp==2026.3.17
 browser-cookie3==0.19.1
 pillow==9.5.0
+PySide6>=6.6.0

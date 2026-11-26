@@ -1,5 +1,7 @@
 /Music
 /.vscode
-/internal/__pycache__
-log.txt
-youtube_cookies.txt
+*/__pycache__/
+/__pycache__/
+*.log
+*.lnk
+*.json
